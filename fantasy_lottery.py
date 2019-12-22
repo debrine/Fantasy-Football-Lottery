@@ -53,7 +53,7 @@ def main():
     lottery_entrants = []
     
     for i in range(NUM_LOTTERY):
-        lottery_entrants.append(input("Please enter the "+ str(NUM_PLAYERS-i)+"th place team: "))
+        lottery_entrants.append(str(input("Please enter the "+ str(NUM_PLAYERS-i)+"th place team: ")))
 
     generate_lottery(lottery_entrants, NUM_LOTTERY)
 
