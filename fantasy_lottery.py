@@ -4,7 +4,7 @@ from time import sleep
 LOTTERY_ODDS = [35,30,20,10,4,1]
 NUM_PLAYERS = 12
 NUM_LOTTERY = 6
-YEAR =2020
+YEAR =2024
 
 '''
 The generate lottery function accepts a list of the lottery participants in the order
