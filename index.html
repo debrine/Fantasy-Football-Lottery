@@ -1,614 +1,742 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Fantasy Football Draft Lottery</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/EasePack.min.js"></script>
-  <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-    :root {
-      --bg:        #050810;
-      --surface:   #0d1117;
-      --surface2:  #161b22;
-      --border:    #30363d;
-      --text:      #e6edf3;
-      --muted:     #8b949e;
-      --accent:    #58a6ff;
-      --drum-sz:   500px;
-    }
-
-    body {
-      background: radial-gradient(ellipse at 50% 0%, #0d1a2e 0%, var(--bg) 65%);
-      color: var(--text);
-      font-family: 'Inter', sans-serif;
-      min-height: 100vh;
-      overflow: hidden;
-    }
-
-    /* ─── SETUP SCREEN ─────────────────────────────────────────── */
-    #screen-setup {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      min-height: 100vh;
-      gap: 28px;
-      padding: 40px 24px;
-    }
-
-    .setup-title {
-      font-family: 'Orbitron', sans-serif;
-      font-size: 2rem;
-      font-weight: 900;
-      letter-spacing: 0.04em;
-      text-align: center;
-      line-height: 1.2;
-      background: linear-gradient(135deg, #e6edf3 0%, var(--accent) 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-    }
-
-    .setup-year {
-      font-family: 'Orbitron', sans-serif;
-      font-size: 0.85rem;
-      letter-spacing: 0.3em;
-      color: var(--muted);
-      text-align: center;
-      margin-top: -16px;
-    }
-
-    .team-inputs {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      width: 100%;
-      max-width: 460px;
-    }
-
-    .team-row {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-    .team-badge {
-      width: 110px;
-      flex-shrink: 0;
-      text-align: right;
-      line-height: 1.4;
-    }
-
-    .badge-place {
-      font-size: 0.78rem;
-      color: var(--text);
-    }
-
-    .color-pip {
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
-      flex-shrink: 0;
-    }
-
-    .team-row input {
-      flex: 1;
-      background: var(--surface2);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      color: var(--text);
-      font-family: 'Inter', sans-serif;
-      font-size: 0.88rem;
-      padding: 9px 13px;
-      outline: none;
-      transition: border-color 0.2s, box-shadow 0.2s;
-    }
-
-    .team-row input:focus {
-      border-color: var(--accent);
-      box-shadow: 0 0 0 3px rgba(88,166,255,0.15);
-    }
-
-    .team-row input::placeholder { color: var(--muted); }
-
-    .tickets-wrap {
-      display: flex;
-      align-items: center;
-      gap: 4px;
-      flex-shrink: 0;
-    }
-
-    .tickets-label {
-      font-size: 0.65rem;
-      color: var(--muted);
-      white-space: nowrap;
-    }
-
-    .tickets-input {
-      width: 48px;
-      background: var(--surface2);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      color: var(--text);
-      font-family: 'Inter', sans-serif;
-      font-size: 0.88rem;
-      padding: 9px 8px;
-      text-align: center;
-      outline: none;
-      transition: border-color 0.2s, box-shadow 0.2s;
-      /* hide number spinners */
-      -moz-appearance: textfield;
-      appearance: textfield;
-    }
-    .tickets-input::-webkit-outer-spin-button,
-    .tickets-input::-webkit-inner-spin-button { -webkit-appearance: none; }
-    .tickets-input:focus {
-      border-color: var(--accent);
-      box-shadow: 0 0 0 3px rgba(88,166,255,0.15);
-    }
-
-    #btn-start {
-      font-family: 'Orbitron', sans-serif;
-      font-size: 0.95rem;
-      font-weight: 700;
-      letter-spacing: 0.12em;
-      color: #000;
-      background: linear-gradient(135deg, #58a6ff, #1f6feb);
-      border: none;
-      border-radius: 10px;
-      padding: 15px 52px;
-      cursor: pointer;
-      box-shadow: 0 0 32px rgba(88,166,255,0.45);
-      transition: transform 0.12s, box-shadow 0.2s;
-    }
-
-    #btn-start:hover { transform: translateY(-2px); box-shadow: 0 0 48px rgba(88,166,255,0.65); }
-    #btn-start:active { transform: translateY(0); }
-
-    /* ─── LOTTERY SCREEN ───────────────────────────────────────── */
-    #screen-lottery {
-      display: none;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      min-height: 100vh;
-      gap: 14px;
-      padding: 16px;
-    }
-
-    #screen-lottery.active { display: flex; }
-
-    .lottery-header {
-      font-family: 'Orbitron', sans-serif;
-      text-align: center;
-    }
-
-    .lottery-supertitle {
-      font-size: 0.7rem;
-      letter-spacing: 0.25em;
-      color: var(--muted);
-    }
-
-    #pick-indicator {
-      font-size: 1.4rem;
-      font-weight: 900;
-      letter-spacing: 0.04em;
-    }
-
-    /* ─── MAIN LAYOUT ──────────────────────────────────────────── */
-    .lottery-main {
-      display: flex;
-      gap: 22px;
-      align-items: flex-start;
-    }
-
-    /* ─── DRUM ─────────────────────────────────────────────────── */
-    .drum-section {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 14px;
-    }
-
-    .drum-wrapper {
-      position: relative;
-      width: var(--drum-sz);
-      height: var(--drum-sz);
-    }
-
-    /* CSS clip — balls outside physics walls are hidden */
-    .drum-mask {
-      position: absolute;
-      inset: 0;
-      border-radius: 50%;
-      overflow: hidden;
-      background: #06090f;
-      z-index: 1;
-    }
-
-    #drum-canvas { display: block; }
-
-    /* Visual ring */
-    .drum-ring {
-      position: absolute;
-      inset: -3px;
-      border-radius: 50%;
-      border: 3px solid rgba(88,166,255,0.35);
-      box-shadow: 0 0 28px rgba(88,166,255,0.2), inset 0 0 50px rgba(88,166,255,0.04);
-      pointer-events: none;
-      z-index: 3;
-      animation: ringIdle 2.5s ease-in-out infinite;
-    }
-
-    @keyframes ringIdle {
-      0%,100% { box-shadow: 0 0 20px rgba(88,166,255,0.18), inset 0 0 40px rgba(88,166,255,0.03); }
-      50%      { box-shadow: 0 0 40px rgba(88,166,255,0.40), inset 0 0 60px rgba(88,166,255,0.07); }
-    }
-
-    .drum-ring.spinning {
-      animation: ringSpin 0.6s ease-in-out infinite;
-    }
-
-    @keyframes ringSpin {
-      0%,100% { border-color: rgba(88,166,255,0.8);  box-shadow: 0 0 60px rgba(88,166,255,0.9), inset 0 0 80px rgba(88,166,255,0.2); }
-      50%      { border-color: #58a6ff;                box-shadow: 0 0 90px #58a6ff, inset 0 0 100px rgba(88,166,255,0.3); }
-    }
-
-    /* Spotlight darkening overlay */
-    .drum-spotlight {
-      position: absolute;
-      inset: 0;
-      border-radius: 50%;
-      background: radial-gradient(circle at center, transparent 25%, rgba(5,8,16,0.88) 100%);
-      pointer-events: none;
-      z-index: 4;
-      opacity: 0;
-    }
-
-    /* ─── DRAW BUTTON ──────────────────────────────────────────── */
-    #btn-draw {
-      font-family: 'Orbitron', sans-serif;
-      font-size: 0.88rem;
-      font-weight: 700;
-      letter-spacing: 0.12em;
-      color: #000;
-      background: linear-gradient(135deg, #58a6ff, #1f6feb);
-      border: none;
-      border-radius: 10px;
-      padding: 13px 44px;
-      cursor: pointer;
-      box-shadow: 0 0 24px rgba(88,166,255,0.4);
-      transition: transform 0.12s, box-shadow 0.2s, opacity 0.2s, background 0.3s, color 0.3s;
-    }
-
-    #btn-draw:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 0 38px rgba(88,166,255,0.65); }
-    #btn-draw:disabled { opacity: 0.35; cursor: not-allowed; transform: none; }
-    #btn-draw.complete {
-      background: linear-gradient(135deg, #2a9d8f, #1d7a6e);
-      color: #fff;
-      opacity: 1;
-      cursor: default;
-      box-shadow: 0 0 24px rgba(42,157,143,0.5);
-    }
-
-    /* ─── RIGHT PANEL ──────────────────────────────────────────── */
-    .right-panel {
-      width: 300px;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-    }
-
-    /* Legend */
-    .legend {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 13px 14px;
-    }
-
-    .panel-title {
-      font-family: 'Orbitron', sans-serif;
-      font-size: 0.6rem;
-      letter-spacing: 0.22em;
-      color: var(--muted);
-      margin-bottom: 10px;
-    }
-
-    .legend-items { display: flex; flex-direction: column; gap: 5px; }
-
-    .legend-item {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      font-size: 0.78rem;
-      transition: opacity 0.5s;
-    }
-
-    .legend-item.eliminated { opacity: 0.28; }
-
-    .legend-dot {
-      width: 12px;
-      height: 12px;
-      border-radius: 50%;
-      flex-shrink: 0;
-    }
-
-    .legend-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .legend-tickets { font-size: 0.68rem; color: var(--muted); flex-shrink: 0; }
-
-    /* Reveal zone */
-    .reveal-zone {
-      min-height: 120px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .reveal-card {
-      width: 100%;
-      height: 114px;
-      position: relative;
-      transform-style: preserve-3d;
-      border-radius: 12px;
-      display: none;
-    }
-
-    .reveal-card.visible { display: block; }
-
-    .card-face {
-      position: absolute;
-      inset: 0;
-      border-radius: 12px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      backface-visibility: hidden;
-      -webkit-backface-visibility: hidden;
-    }
-
-    .card-front {
-      background: var(--surface2);
-      border: 1px solid var(--border);
-      font-family: 'Orbitron', sans-serif;
-      font-size: 2.2rem;
-      color: var(--muted);
-    }
-
-    .card-back {
-      transform: rotateY(180deg);
-      border: 2px solid transparent;
-      gap: 3px;
-      padding: 14px;
-    }
-
-    .card-label {
-      font-family: 'Orbitron', sans-serif;
-      font-size: 0.6rem;
-      letter-spacing: 0.3em;
-      opacity: 0.75;
-    }
-
-    .card-pick-num {
-      font-family: 'Orbitron', sans-serif;
-      font-size: 2.4rem;
-      font-weight: 900;
-      line-height: 1;
-    }
-
-    .card-team {
-      font-size: 0.95rem;
-      font-weight: 600;
-      text-align: center;
-      max-width: 100%;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-
-    /* Results panel */
-    .results-panel {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 13px 14px;
-      flex: 1;
-    }
-
-    .results-list { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; }
-
-    .result-row {
-      display: flex;
-      align-items: center;
-      gap: 9px;
-      padding: 7px 10px;
-      background: var(--surface2);
-      border-radius: 8px;
-      border-left: 3px solid transparent;
-      opacity: 0;
-      transform: translateX(28px);
-    }
-
-    .result-pick {
-      font-family: 'Orbitron', sans-serif;
-      font-size: 0.7rem;
-      font-weight: 700;
-      color: var(--muted);
-      flex-shrink: 0;
-      width: 46px;
-    }
-
-    .result-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
-
-    .result-name { font-size: 0.82rem; font-weight: 600; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-
-    /* Ghost ball */
-    #ghost-ball {
-      position: fixed;
-      border-radius: 50%;
-      pointer-events: none;
-      z-index: 9999;
-      display: none;
-    }
-
-    /* Celebration */
-    @keyframes celebGlow {
-      0%,100% { box-shadow: 0 0 0 1px var(--border); }
-      20%  { box-shadow: 0 0 32px rgba(230,57,70,0.7),  0 0 0 1px #e63946; }
-      40%  { box-shadow: 0 0 32px rgba(233,196,106,0.7), 0 0 0 1px #e9c46a; }
-      60%  { box-shadow: 0 0 32px rgba(42,157,143,0.7),  0 0 0 1px #2a9d8f; }
-      80%  { box-shadow: 0 0 32px rgba(88,166,255,0.7),  0 0 0 1px #58a6ff; }
-    }
-
-    .results-panel.celebrate { animation: celebGlow 1.2s ease-in-out 3; }
-  </style>
-</head>
-<body>
-
-<!-- ════════════════════ SETUP SCREEN ════════════════════ -->
-<div id="screen-setup">
-  <div>
-    <div class="setup-title">Fantasy Football<br>Draft Lottery</div>
-    <div class="setup-year" id="setup-year"></div>
-  </div>
-  <div class="team-inputs" id="team-inputs"></div>
-  <button id="btn-start">START LOTTERY</button>
-</div>
-
-<!-- ════════════════════ LOTTERY SCREEN ════════════════════ -->
-<div id="screen-lottery">
-  <div class="lottery-header">
-    <div class="lottery-supertitle" id="lottery-supertitle"></div>
-    <div id="pick-indicator">Ready</div>
-  </div>
-
-  <div class="lottery-main">
-    <!-- Drum column -->
-    <div class="drum-section">
-      <div class="drum-wrapper">
-        <div class="drum-mask">
-          <canvas id="drum-canvas"></canvas>
-        </div>
-        <div class="drum-ring" id="drum-ring"></div>
-        <div class="drum-spotlight" id="drum-spotlight"></div>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Fantasy Football Draft Lottery</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@300;400;600&display=swap"
+      rel="stylesheet"
+    />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/EasePack.min.js"></script>
+    <style>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      :root {
+        --bg: #050810;
+        --surface: #0d1117;
+        --surface2: #161b22;
+        --border: #30363d;
+        --text: #e6edf3;
+        --muted: #8b949e;
+        --accent: #58a6ff;
+        --drum-sz: 500px;
+      }
+
+      body {
+        background: radial-gradient(
+          ellipse at 50% 0%,
+          #0d1a2e 0%,
+          var(--bg) 65%
+        );
+        color: var(--text);
+        font-family: 'Inter', sans-serif;
+        min-height: 100vh;
+        overflow: hidden;
+      }
+
+      /* ─── SETUP SCREEN ─────────────────────────────────────────── */
+      #screen-setup {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+        gap: 28px;
+        padding: 40px 24px;
+      }
+
+      .setup-title {
+        font-family: 'Orbitron', sans-serif;
+        font-size: 2rem;
+        font-weight: 900;
+        letter-spacing: 0.04em;
+        text-align: center;
+        line-height: 1.2;
+        background: linear-gradient(135deg, #e6edf3 0%, var(--accent) 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+
+      .setup-year {
+        font-family: 'Orbitron', sans-serif;
+        font-size: 0.85rem;
+        letter-spacing: 0.3em;
+        color: var(--muted);
+        text-align: center;
+        margin-top: -16px;
+      }
+
+      .team-inputs {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        width: 100%;
+        max-width: 460px;
+      }
+
+      .team-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .team-badge {
+        width: 110px;
+        flex-shrink: 0;
+        text-align: right;
+        line-height: 1.4;
+      }
+
+      .badge-place {
+        font-size: 0.78rem;
+        color: var(--text);
+      }
+
+      .color-pip {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        flex-shrink: 0;
+      }
+
+      .team-row input {
+        flex: 1;
+        background: var(--surface2);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        color: var(--text);
+        font-family: 'Inter', sans-serif;
+        font-size: 0.88rem;
+        padding: 9px 13px;
+        outline: none;
+        transition:
+          border-color 0.2s,
+          box-shadow 0.2s;
+      }
+
+      .team-row input:focus {
+        border-color: var(--accent);
+        box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.15);
+      }
+
+      .team-row input::placeholder {
+        color: var(--muted);
+      }
+
+      .tickets-wrap {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        flex-shrink: 0;
+      }
+
+      .tickets-label {
+        font-size: 0.65rem;
+        color: var(--muted);
+        white-space: nowrap;
+      }
+
+      .tickets-input {
+        width: 48px;
+        background: var(--surface2);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        color: var(--text);
+        font-family: 'Inter', sans-serif;
+        font-size: 0.88rem;
+        padding: 9px 8px;
+        text-align: center;
+        outline: none;
+        transition:
+          border-color 0.2s,
+          box-shadow 0.2s;
+        /* hide number spinners */
+        -moz-appearance: textfield;
+        appearance: textfield;
+      }
+      .tickets-input::-webkit-outer-spin-button,
+      .tickets-input::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+      }
+      .tickets-input:focus {
+        border-color: var(--accent);
+        box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.15);
+      }
+
+      #btn-start {
+        font-family: 'Orbitron', sans-serif;
+        font-size: 0.95rem;
+        font-weight: 700;
+        letter-spacing: 0.12em;
+        color: #000;
+        background: linear-gradient(135deg, #58a6ff, #1f6feb);
+        border: none;
+        border-radius: 10px;
+        padding: 15px 52px;
+        cursor: pointer;
+        box-shadow: 0 0 32px rgba(88, 166, 255, 0.45);
+        transition:
+          transform 0.12s,
+          box-shadow 0.2s;
+      }
+
+      #btn-start:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 0 48px rgba(88, 166, 255, 0.65);
+      }
+      #btn-start:active {
+        transform: translateY(0);
+      }
+
+      /* ─── LOTTERY SCREEN ───────────────────────────────────────── */
+      #screen-lottery {
+        display: none;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+        gap: 14px;
+        padding: 16px;
+      }
+
+      #screen-lottery.active {
+        display: flex;
+      }
+
+      .lottery-header {
+        font-family: 'Orbitron', sans-serif;
+        text-align: center;
+      }
+
+      .lottery-supertitle {
+        font-size: 0.7rem;
+        letter-spacing: 0.25em;
+        color: var(--muted);
+      }
+
+      #pick-indicator {
+        font-size: 1.4rem;
+        font-weight: 900;
+        letter-spacing: 0.04em;
+      }
+
+      /* ─── MAIN LAYOUT ──────────────────────────────────────────── */
+      .lottery-main {
+        display: flex;
+        gap: 22px;
+        align-items: flex-start;
+      }
+
+      /* ─── DRUM ─────────────────────────────────────────────────── */
+      .drum-section {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 14px;
+      }
+
+      .drum-wrapper {
+        position: relative;
+        width: var(--drum-sz);
+        height: var(--drum-sz);
+      }
+
+      /* CSS clip — balls outside physics walls are hidden */
+      .drum-mask {
+        position: absolute;
+        inset: 0;
+        border-radius: 50%;
+        overflow: hidden;
+        background: #06090f;
+        z-index: 1;
+      }
+
+      #drum-canvas {
+        display: block;
+      }
+
+      /* Visual ring */
+      .drum-ring {
+        position: absolute;
+        inset: -3px;
+        border-radius: 50%;
+        border: 3px solid rgba(88, 166, 255, 0.35);
+        box-shadow:
+          0 0 28px rgba(88, 166, 255, 0.2),
+          inset 0 0 50px rgba(88, 166, 255, 0.04);
+        pointer-events: none;
+        z-index: 3;
+        animation: ringIdle 2.5s ease-in-out infinite;
+      }
+
+      @keyframes ringIdle {
+        0%,
+        100% {
+          box-shadow:
+            0 0 20px rgba(88, 166, 255, 0.18),
+            inset 0 0 40px rgba(88, 166, 255, 0.03);
+        }
+        50% {
+          box-shadow:
+            0 0 40px rgba(88, 166, 255, 0.4),
+            inset 0 0 60px rgba(88, 166, 255, 0.07);
+        }
+      }
+
+      .drum-ring.spinning {
+        animation: ringSpin 0.6s ease-in-out infinite;
+      }
+
+      @keyframes ringSpin {
+        0%,
+        100% {
+          border-color: rgba(88, 166, 255, 0.8);
+          box-shadow:
+            0 0 60px rgba(88, 166, 255, 0.9),
+            inset 0 0 80px rgba(88, 166, 255, 0.2);
+        }
+        50% {
+          border-color: #58a6ff;
+          box-shadow:
+            0 0 90px #58a6ff,
+            inset 0 0 100px rgba(88, 166, 255, 0.3);
+        }
+      }
+
+      /* Spotlight darkening overlay */
+      .drum-spotlight {
+        position: absolute;
+        inset: 0;
+        border-radius: 50%;
+        background: radial-gradient(
+          circle at center,
+          transparent 25%,
+          rgba(5, 8, 16, 0.88) 100%
+        );
+        pointer-events: none;
+        z-index: 4;
+        opacity: 0;
+      }
+
+      /* ─── DRAW BUTTON ──────────────────────────────────────────── */
+      #btn-draw {
+        font-family: 'Orbitron', sans-serif;
+        font-size: 0.88rem;
+        font-weight: 700;
+        letter-spacing: 0.12em;
+        color: #000;
+        background: linear-gradient(135deg, #58a6ff, #1f6feb);
+        border: none;
+        border-radius: 10px;
+        padding: 13px 44px;
+        cursor: pointer;
+        box-shadow: 0 0 24px rgba(88, 166, 255, 0.4);
+        transition:
+          transform 0.12s,
+          box-shadow 0.2s,
+          opacity 0.2s,
+          background 0.3s,
+          color 0.3s;
+      }
+
+      #btn-draw:hover:not(:disabled) {
+        transform: translateY(-2px);
+        box-shadow: 0 0 38px rgba(88, 166, 255, 0.65);
+      }
+      #btn-draw:disabled {
+        opacity: 0.35;
+        cursor: not-allowed;
+        transform: none;
+      }
+      #btn-draw.complete {
+        background: linear-gradient(135deg, #2a9d8f, #1d7a6e);
+        color: #fff;
+        opacity: 1;
+        cursor: default;
+        box-shadow: 0 0 24px rgba(42, 157, 143, 0.5);
+      }
+
+      /* ─── RIGHT PANEL ──────────────────────────────────────────── */
+      .right-panel {
+        width: 300px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      /* Legend */
+      .legend {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 13px 14px;
+      }
+
+      .panel-title {
+        font-family: 'Orbitron', sans-serif;
+        font-size: 0.6rem;
+        letter-spacing: 0.22em;
+        color: var(--muted);
+        margin-bottom: 10px;
+      }
+
+      .legend-items {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+      }
+
+      .legend-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.78rem;
+        transition: opacity 0.5s;
+      }
+
+      .legend-item.eliminated {
+        opacity: 0.28;
+      }
+
+      .legend-dot {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        flex-shrink: 0;
+      }
+
+      .legend-name {
+        flex: 1;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .legend-tickets {
+        font-size: 0.68rem;
+        color: var(--muted);
+        flex-shrink: 0;
+      }
+
+      /* Reveal zone */
+      .reveal-zone {
+        min-height: 120px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .reveal-card {
+        width: 100%;
+        height: 114px;
+        position: relative;
+        transform-style: preserve-3d;
+        border-radius: 12px;
+        display: none;
+      }
+
+      .reveal-card.visible {
+        display: block;
+      }
+
+      .card-face {
+        position: absolute;
+        inset: 0;
+        border-radius: 12px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        backface-visibility: hidden;
+        -webkit-backface-visibility: hidden;
+      }
+
+      .card-front {
+        background: var(--surface2);
+        border: 1px solid var(--border);
+        font-family: 'Orbitron', sans-serif;
+        font-size: 2.2rem;
+        color: var(--muted);
+      }
+
+      .card-back {
+        transform: rotateY(180deg);
+        border: 2px solid transparent;
+        gap: 3px;
+        padding: 14px;
+      }
+
+      .card-label {
+        font-family: 'Orbitron', sans-serif;
+        font-size: 0.6rem;
+        letter-spacing: 0.3em;
+        opacity: 0.75;
+      }
+
+      .card-pick-num {
+        font-family: 'Orbitron', sans-serif;
+        font-size: 2.4rem;
+        font-weight: 900;
+        line-height: 1;
+      }
+
+      .card-team {
+        font-size: 0.95rem;
+        font-weight: 600;
+        text-align: center;
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      /* Results panel */
+      .results-panel {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 13px 14px;
+        flex: 1;
+      }
+
+      .results-list {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        margin-top: 10px;
+      }
+
+      .result-row {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        padding: 7px 10px;
+        background: var(--surface2);
+        border-radius: 8px;
+        border-left: 3px solid transparent;
+        opacity: 0;
+        transform: translateX(28px);
+      }
+
+      .result-pick {
+        font-family: 'Orbitron', sans-serif;
+        font-size: 0.7rem;
+        font-weight: 700;
+        color: var(--muted);
+        flex-shrink: 0;
+        width: 46px;
+      }
+
+      .result-dot {
+        width: 9px;
+        height: 9px;
+        border-radius: 50%;
+        flex-shrink: 0;
+      }
+
+      .result-name {
+        font-size: 0.82rem;
+        font-weight: 600;
+        flex: 1;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      /* Ghost ball */
+      #ghost-ball {
+        position: fixed;
+        border-radius: 50%;
+        pointer-events: none;
+        z-index: 9999;
+        display: none;
+      }
+
+      /* Celebration */
+      @keyframes celebGlow {
+        0%,
+        100% {
+          box-shadow: 0 0 0 1px var(--border);
+        }
+        20% {
+          box-shadow:
+            0 0 32px rgba(230, 57, 70, 0.7),
+            0 0 0 1px #e63946;
+        }
+        40% {
+          box-shadow:
+            0 0 32px rgba(233, 196, 106, 0.7),
+            0 0 0 1px #e9c46a;
+        }
+        60% {
+          box-shadow:
+            0 0 32px rgba(42, 157, 143, 0.7),
+            0 0 0 1px #2a9d8f;
+        }
+        80% {
+          box-shadow:
+            0 0 32px rgba(88, 166, 255, 0.7),
+            0 0 0 1px #58a6ff;
+        }
+      }
+
+      .results-panel.celebrate {
+        animation: celebGlow 1.2s ease-in-out 3;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- ════════════════════ SETUP SCREEN ════════════════════ -->
+    <div id="screen-setup">
+      <div>
+        <div class="setup-title">Fantasy Football<br />Draft Lottery</div>
+        <div class="setup-year" id="setup-year"></div>
       </div>
-      <button id="btn-draw" disabled>LOADING BALLS...</button>
+      <div class="team-inputs" id="team-inputs"></div>
+      <button id="btn-start">START LOTTERY</button>
     </div>
 
-    <!-- Right panel -->
-    <div class="right-panel">
-      <div class="legend">
-        <div class="panel-title">LOTTERY PARTICIPANTS</div>
-        <div class="legend-items" id="legend-items"></div>
+    <!-- ════════════════════ LOTTERY SCREEN ════════════════════ -->
+    <div id="screen-lottery">
+      <div class="lottery-header">
+        <div class="lottery-supertitle" id="lottery-supertitle"></div>
+        <div id="pick-indicator">Ready</div>
       </div>
 
-      <div class="reveal-zone">
-        <div class="reveal-card" id="reveal-card">
-          <div class="card-face card-front">?</div>
-          <div class="card-face card-back" id="card-back">
-            <div class="card-label">PICK</div>
-            <div class="card-pick-num" id="card-pick-num">1</div>
-            <div class="card-team" id="card-team-name">–</div>
+      <div class="lottery-main">
+        <!-- Drum column -->
+        <div class="drum-section">
+          <div class="drum-wrapper">
+            <div class="drum-mask">
+              <canvas id="drum-canvas"></canvas>
+            </div>
+            <div class="drum-ring" id="drum-ring"></div>
+            <div class="drum-spotlight" id="drum-spotlight"></div>
+          </div>
+          <button id="btn-draw" disabled>LOADING BALLS...</button>
+        </div>
+
+        <!-- Right panel -->
+        <div class="right-panel">
+          <div class="legend">
+            <div class="panel-title">LOTTERY PARTICIPANTS</div>
+            <div class="legend-items" id="legend-items"></div>
+          </div>
+
+          <div class="reveal-zone">
+            <div class="reveal-card" id="reveal-card">
+              <div class="card-face card-front">?</div>
+              <div class="card-face card-back" id="card-back">
+                <div class="card-label">PICK</div>
+                <div class="card-pick-num" id="card-pick-num">1</div>
+                <div class="card-team" id="card-team-name">–</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="results-panel" id="results-panel">
+            <div class="panel-title">DRAFT ORDER</div>
+            <div class="results-list" id="results-list"></div>
           </div>
         </div>
       </div>
-
-      <div class="results-panel" id="results-panel">
-        <div class="panel-title">DRAFT ORDER</div>
-        <div class="results-list" id="results-list"></div>
-      </div>
     </div>
-  </div>
-</div>
 
-<!-- Ghost ball (DOM div GSAP-animates from drum to reveal zone) -->
-<div id="ghost-ball"></div>
+    <!-- Ghost ball (DOM div GSAP-animates from drum to reveal zone) -->
+    <div id="ghost-ball"></div>
 
-<script>
-// ══════════════════════════════════════════════════════════════
-//  CONFIG  (mirrors fantasy_lottery.py constants)
-// ══════════════════════════════════════════════════════════════
-const LOTTERY_ODDS  = [35, 30, 20, 10, 4, 1]; // tickets per position
-const NUM_LOTTERY   = 6;
-const NUM_PLAYERS   = 12;
-const YEAR          = 2025;
+    <script>
+      // ══════════════════════════════════════════════════════════════
+      //  CONFIG  (mirrors fantasy_lottery.py constants)
+      // ══════════════════════════════════════════════════════════════
+      const LOTTERY_ODDS = [35, 30, 20, 10, 4, 1]; // tickets per position
+      const NUM_LOTTERY = 6;
+      const NUM_PLAYERS = 12;
+      const YEAR = 2026;
 
-const TEAM_COLORS = [
-  '#e63946', // last place  – 35 tickets – red
-  '#f4a261', //              30 tickets – orange
-  '#2a9d8f', //              20 tickets – teal
-  '#457b9d', //              10 tickets – steel blue
-  '#a8dadc', //               4 tickets – light blue
-  '#e9c46a', // 7th place  –  1 ticket  – gold
-];
+      const TEAM_COLORS = [
+        '#e63946', // last place  – 35 tickets – red
+        '#f4a261', //              30 tickets – orange
+        '#2a9d8f', //              20 tickets – teal
+        '#457b9d', //              10 tickets – steel blue
+        '#a8dadc', //               4 tickets – light blue
+        '#e9c46a', // 7th place  –  1 ticket  – gold
+      ];
 
-// Physics constants
-const CANVAS_SZ       = 500;
-const DRUM_RADIUS     = 218;
-const DRUM_CX         = CANVAS_SZ / 2;
-const DRUM_CY         = CANVAS_SZ / 2;
-const BALL_R          = 13;
-const NUM_WALL_SEGS   = 48;
+      // Physics constants
+      const CANVAS_SZ = 500;
+      const DRUM_RADIUS = 218;
+      const DRUM_CX = CANVAS_SZ / 2;
+      const DRUM_CY = CANVAS_SZ / 2;
+      const BALL_R = 13;
+      const NUM_WALL_SEGS = 48;
 
-// ══════════════════════════════════════════════════════════════
-//  STATE
-// ══════════════════════════════════════════════════════════════
-const STATE = {
-  teams:         [],   // [{name, color, ticketCount}]
-  ballPool:      [],   // [{id, teamIdx, body, active}]
-  results:       [],
-  currentPick:   1,
-  isAnimating:   false,
-  engine:        null,
-  render:        null,
-  runner:        null,
-  chaosInterval: null,
-};
+      // ══════════════════════════════════════════════════════════════
+      //  STATE
+      // ══════════════════════════════════════════════════════════════
+      const STATE = {
+        teams: [], // [{name, color, ticketCount}]
+        ballPool: [], // [{id, teamIdx, body, active}]
+        results: [],
+        currentPick: 1,
+        isAnimating: false,
+        engine: null,
+        render: null,
+        runner: null,
+        chaosInterval: null,
+      };
 
-// ══════════════════════════════════════════════════════════════
-//  MATTER.JS ALIASES
-// ══════════════════════════════════════════════════════════════
-const { Engine, Render, Runner, Bodies, Body, World } = Matter;
+      // ══════════════════════════════════════════════════════════════
+      //  MATTER.JS ALIASES
+      // ══════════════════════════════════════════════════════════════
+      const { Engine, Render, Runner, Bodies, Body, World } = Matter;
 
-// ══════════════════════════════════════════════════════════════
-//  UTILITIES
-// ══════════════════════════════════════════════════════════════
-function ordinal(n) {
-  const s = ['th','st','nd','rd'];
-  const v = n % 100;
-  return n + (s[(v - 20) % 10] || s[v] || s[0]);
-}
+      // ══════════════════════════════════════════════════════════════
+      //  UTILITIES
+      // ══════════════════════════════════════════════════════════════
+      function ordinal(n) {
+        const s = ['th', 'st', 'nd', 'rd'];
+        const v = n % 100;
+        return n + (s[(v - 20) % 10] || s[v] || s[0]);
+      }
 
-function getContrastColor(hex) {
-  const n = parseInt(hex.replace('#',''), 16);
-  const r = (n >> 16) & 0xff, g = (n >> 8) & 0xff, b = n & 0xff;
-  return (0.299*r + 0.587*g + 0.114*b) / 255 > 0.55 ? '#000000' : '#ffffff';
-}
+      function getContrastColor(hex) {
+        const n = parseInt(hex.replace('#', ''), 16);
+        const r = (n >> 16) & 0xff,
+          g = (n >> 8) & 0xff,
+          b = n & 0xff;
+        return (0.299 * r + 0.587 * g + 0.114 * b) / 255 > 0.55
+          ? '#000000'
+          : '#ffffff';
+      }
 
-// ══════════════════════════════════════════════════════════════
-//  SETUP SCREEN
-// ══════════════════════════════════════════════════════════════
-function initSetupScreen() {
-  document.getElementById('setup-year').textContent = YEAR;
+      // ══════════════════════════════════════════════════════════════
+      //  SETUP SCREEN
+      // ══════════════════════════════════════════════════════════════
+      function initSetupScreen() {
+        document.getElementById('setup-year').textContent = YEAR;
 
-  const container = document.getElementById('team-inputs');
+        const container = document.getElementById('team-inputs');
 
-  for (let i = 0; i < NUM_LOTTERY; i++) {
-    const place   = NUM_PLAYERS - i;
-    const tickets = LOTTERY_ODDS[i];
-    const color   = TEAM_COLORS[i];
+        for (let i = 0; i < NUM_LOTTERY; i++) {
+          const place = NUM_PLAYERS - i;
+          const tickets = LOTTERY_ODDS[i];
+          const color = TEAM_COLORS[i];
 
-    const row = document.createElement('div');
-    row.className = 'team-row';
-    row.innerHTML = `
+          const row = document.createElement('div');
+          row.className = 'team-row';
+          row.innerHTML = `
       <div class="team-badge">
         <div class="badge-place">${ordinal(place)} place</div>
       </div>
@@ -620,424 +748,461 @@ function initSetupScreen() {
         <span class="tickets-label">tickets</span>
       </div>
     `;
-    container.appendChild(row);
-  }
+          container.appendChild(row);
+        }
 
-  document.getElementById('btn-start').addEventListener('click', startLottery);
+        document
+          .getElementById('btn-start')
+          .addEventListener('click', startLottery);
 
-  document.addEventListener('keydown', e => {
-    if (e.key === 'Enter' && document.getElementById('screen-setup').style.display !== 'none') {
-      startLottery();
-    }
-  });
+        document.addEventListener('keydown', (e) => {
+          if (
+            e.key === 'Enter' &&
+            document.getElementById('screen-setup').style.display !== 'none'
+          ) {
+            startLottery();
+          }
+        });
 
-  document.getElementById('team-input-0').focus();
-}
+        document.getElementById('team-input-0').focus();
+      }
 
-function startLottery() {
-  const names   = [];
-  const tickets = [];
-  for (let i = 0; i < NUM_LOTTERY; i++) {
-    const name = document.getElementById(`team-input-${i}`).value.trim();
-    const t    = Number.parseInt(document.getElementById(`tickets-input-${i}`).value, 10);
-    names.push(name || `Team ${NUM_PLAYERS - i}`);
-    tickets.push(t > 0 ? t : LOTTERY_ODDS[i]);
-  }
-  transitionToLottery(names, tickets);
-}
+      function startLottery() {
+        const names = [];
+        const tickets = [];
+        for (let i = 0; i < NUM_LOTTERY; i++) {
+          const name = document.getElementById(`team-input-${i}`).value.trim();
+          const t = Number.parseInt(
+            document.getElementById(`tickets-input-${i}`).value,
+            10,
+          );
+          names.push(name || `Team ${NUM_PLAYERS - i}`);
+          tickets.push(t > 0 ? t : LOTTERY_ODDS[i]);
+        }
+        transitionToLottery(names, tickets);
+      }
 
-// ══════════════════════════════════════════════════════════════
-//  TRANSITION TO LOTTERY
-// ══════════════════════════════════════════════════════════════
-function transitionToLottery(names, tickets) {
-  STATE.teams = names.map((name, i) => ({
-    name,
-    color:       TEAM_COLORS[i],
-    ticketCount: tickets[i],
-  }));
+      // ══════════════════════════════════════════════════════════════
+      //  TRANSITION TO LOTTERY
+      // ══════════════════════════════════════════════════════════════
+      function transitionToLottery(names, tickets) {
+        STATE.teams = names.map((name, i) => ({
+          name,
+          color: TEAM_COLORS[i],
+          ticketCount: tickets[i],
+        }));
 
-  document.getElementById('screen-setup').style.display = 'none';
-  document.getElementById('screen-lottery').classList.add('active');
+        document.getElementById('screen-setup').style.display = 'none';
+        document.getElementById('screen-lottery').classList.add('active');
 
-  document.getElementById('lottery-supertitle').textContent =
-    `${YEAR} FANTASY FOOTBALL DRAFT LOTTERY`;
-  document.getElementById('pick-indicator').textContent = 'Loading balls...';
+        document.getElementById('lottery-supertitle').textContent =
+          `${YEAR} FANTASY FOOTBALL DRAFT LOTTERY`;
+        document.getElementById('pick-indicator').textContent =
+          'Loading balls...';
 
-  buildLegend();
-  initPhysicsEngine();
-  spawnBalls();
+        buildLegend();
+        initPhysicsEngine();
+        spawnBalls();
 
-  document.getElementById('btn-draw').addEventListener('click', handleDrawClick);
-}
+        document
+          .getElementById('btn-draw')
+          .addEventListener('click', handleDrawClick);
+      }
 
-// ══════════════════════════════════════════════════════════════
-//  LEGEND
-// ══════════════════════════════════════════════════════════════
-function buildLegend() {
-  const container = document.getElementById('legend-items');
-  STATE.teams.forEach((team, i) => {
-    const item = document.createElement('div');
-    item.className = 'legend-item';
-    item.id = `legend-item-${i}`;
-    item.innerHTML = `
+      // ══════════════════════════════════════════════════════════════
+      //  LEGEND
+      // ══════════════════════════════════════════════════════════════
+      function buildLegend() {
+        const container = document.getElementById('legend-items');
+        STATE.teams.forEach((team, i) => {
+          const item = document.createElement('div');
+          item.className = 'legend-item';
+          item.id = `legend-item-${i}`;
+          item.innerHTML = `
       <div class="legend-dot" style="background:${team.color}"></div>
       <div class="legend-name">${team.name}</div>
       <div class="legend-tickets">${team.ticketCount}t</div>
     `;
-    container.appendChild(item);
-  });
-}
-
-// ══════════════════════════════════════════════════════════════
-//  PHYSICS ENGINE
-// ══════════════════════════════════════════════════════════════
-function initPhysicsEngine() {
-  STATE.engine = Engine.create({ gravity: { x: 0, y: 0.9 } });
-
-  const canvas = document.getElementById('drum-canvas');
-
-  STATE.render = Render.create({
-    canvas,
-    engine: STATE.engine,
-    options: {
-      width:       CANVAS_SZ,
-      height:      CANVAS_SZ,
-      wireframes:  false,
-      background:  'transparent',
-    },
-  });
-
-  STATE.runner = Runner.create();
-
-  buildDrumWalls();
-  Render.run(STATE.render);
-  Runner.run(STATE.runner, STATE.engine);
-}
-
-function buildDrumWalls() {
-  const segAngle  = (Math.PI * 2) / NUM_WALL_SEGS;
-  const chord     = 2 * DRUM_RADIUS * Math.sin(segAngle / 2) + 2; // slight overlap
-  const thickness = 22;
-  const bodies    = [];
-
-  for (let i = 0; i < NUM_WALL_SEGS; i++) {
-    const angle = i * segAngle;
-    const x = DRUM_CX + DRUM_RADIUS * Math.cos(angle);
-    const y = DRUM_CY + DRUM_RADIUS * Math.sin(angle);
-    bodies.push(Bodies.rectangle(x, y, chord, thickness, {
-      isStatic:    true,
-      angle:       angle,
-      friction:    0.1,
-      restitution: 0.5,
-      render:      { visible: false },
-    }));
-  }
-
-  World.add(STATE.engine.world, bodies);
-}
-
-// ══════════════════════════════════════════════════════════════
-//  BALL SPAWNING
-// ══════════════════════════════════════════════════════════════
-function spawnBalls() {
-  // Build flat list of team indices (35× team0, 30× team1, …)
-  const teamList = [];
-  STATE.teams.forEach((team, idx) => {
-    for (let j = 0; j < team.ticketCount; j++) teamList.push(idx);
-  });
-
-  // Fisher-Yates shuffle so mixed colors appear from start
-  for (let i = teamList.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [teamList[i], teamList[j]] = [teamList[j], teamList[i]];
-  }
-
-  // Staggered spawn: 1 ball every 22ms → last ball at ~2.2s
-  teamList.forEach((teamIdx, id) => {
-    setTimeout(() => {
-      const team  = STATE.teams[teamIdx];
-      const x     = DRUM_CX + (Math.random() - 0.5) * 70;
-      const y     = DRUM_CY - DRUM_RADIUS * 0.55 + (Math.random() - 0.5) * 40;
-
-      const body = Bodies.circle(x, y, BALL_R, {
-        restitution: 0.6,
-        friction:    0.05,
-        frictionAir: 0.012,
-        density:     0.002,
-        render: {
-          fillStyle:   team.color,
-          strokeStyle: lighten(team.color, 25),
-          lineWidth:   1.5,
-        },
-      });
-
-      Body.setVelocity(body, {
-        x: (Math.random() - 0.5) * 4,
-        y: (Math.random() - 0.5) * 3,
-      });
-
-      World.add(STATE.engine.world, body);
-      STATE.ballPool.push({ id, teamIdx, body, active: true });
-
-      // After last ball spawns, enable play
-      if (STATE.ballPool.length === teamList.length) {
-        setTimeout(() => {
-          startChaosForce();
-          document.getElementById('pick-indicator').textContent =
-            `Ready to draw Pick #1`;
-          const btn = document.getElementById('btn-draw');
-          btn.textContent = 'DRAW PICK #1';
-          btn.disabled = false;
-        }, 1200);
+          container.appendChild(item);
+        });
       }
-    }, id * 22);
-  });
-}
 
-function lighten(hex, amt) {
-  const n = parseInt(hex.replace('#',''), 16);
-  const r = Math.min(255, (n >> 16) + amt);
-  const g = Math.min(255, ((n >> 8) & 0xff) + amt);
-  const b = Math.min(255, (n & 0xff) + amt);
-  return `#${((r<<16)|(g<<8)|b).toString(16).padStart(6,'0')}`;
-}
+      // ══════════════════════════════════════════════════════════════
+      //  PHYSICS ENGINE
+      // ══════════════════════════════════════════════════════════════
+      function initPhysicsEngine() {
+        STATE.engine = Engine.create({ gravity: { x: 0, y: 0.9 } });
 
-// ══════════════════════════════════════════════════════════════
-//  CHAOS FORCE  (keeps balls visibly tumbling)
-// ══════════════════════════════════════════════════════════════
-function startChaosForce() {
-  STATE.chaosInterval = setInterval(() => applyChaos(1), 450);
-}
+        const canvas = document.getElementById('drum-canvas');
 
-function applyChaos(intensity) {
-  STATE.ballPool
-    .filter(b => b.active)
-    .forEach(b => {
-      Body.applyForce(b.body, b.body.position, {
-        x: (Math.random() - 0.5) * 0.0028 * intensity,
-        y: (Math.random() - 0.5) * 0.0028 * intensity,
-      });
-    });
-}
-
-// ══════════════════════════════════════════════════════════════
-//  LOTTERY LOGIC  (direct port of Python generate_lottery)
-// ══════════════════════════════════════════════════════════════
-function pickRandomBall() {
-  const active = STATE.ballPool.filter(b => b.active);
-  return active[Math.floor(Math.random() * active.length)];
-}
-
-function removeBallsForTeam(teamIdx) {
-  STATE.ballPool
-    .filter(b => b.active && b.teamIdx === teamIdx)
-    .forEach((b, i) => {
-      setTimeout(() => {
-        b.active = false;
-        World.remove(STATE.engine.world, b.body);
-      }, i * 18); // stagger removal for visual effect
-    });
-}
-
-// ══════════════════════════════════════════════════════════════
-//  DRAW BUTTON
-// ══════════════════════════════════════════════════════════════
-function handleDrawClick() {
-  if (STATE.isAnimating) return;
-  STATE.isAnimating = true;
-  document.getElementById('btn-draw').disabled = true;
-  runPickSequence();
-}
-
-// ══════════════════════════════════════════════════════════════
-//  ANIMATION SEQUENCE
-// ══════════════════════════════════════════════════════════════
-function runPickSequence() {
-  const pickNum = STATE.currentPick;
-
-  // ── Phase 1: Anticipation (0ms – 1200ms) ──────────────────
-  document.getElementById('pick-indicator').textContent = `Drawing Pick #${pickNum}...`;
-  document.getElementById('drum-ring').classList.add('spinning');
-
-  // Speed up chaos during anticipation
-  clearInterval(STATE.chaosInterval);
-  const fastChaos = setInterval(() => applyChaos(5), 80);
-
-  gsap.to('#drum-spotlight', { opacity: 1, duration: 0.5, ease: 'power2.inOut' });
-
-  // ── Phase 2+3: Pick ball, animate ghost (at 1200ms) ───────
-  setTimeout(() => {
-    clearInterval(fastChaos);
-    STATE.chaosInterval = setInterval(() => applyChaos(1), 450);
-
-    const pickedBall = pickRandomBall();
-    const pickedTeam = STATE.teams[pickedBall.teamIdx];
-
-    // Remove from physics world immediately
-    pickedBall.active = false;
-    World.remove(STATE.engine.world, pickedBall.body);
-
-    // Translate Matter.js world position → viewport coords
-    const canvas = document.getElementById('drum-canvas');
-    const rect   = canvas.getBoundingClientRect();
-    const bx     = rect.left + pickedBall.body.position.x;
-    const by     = rect.top  + pickedBall.body.position.y;
-
-    // Get reveal zone target
-    const revealZone = document.querySelector('.reveal-zone');
-    const rRect      = revealZone.getBoundingClientRect();
-    const tx = rRect.left + rRect.width  / 2 - BALL_R;
-    const ty = rRect.top  + rRect.height / 2 - BALL_R;
-
-    // Place ghost ball at ball's position
-    const ghost = document.getElementById('ghost-ball');
-    gsap.set(ghost, {
-      clearProps: 'transform',
-      display:   'block',
-      opacity:   1,
-      scale:     1,
-      rotation:  0,
-      left:      bx - BALL_R,
-      top:       by - BALL_R,
-      width:     BALL_R * 2,
-      height:    BALL_R * 2,
-      background: pickedTeam.color,
-      boxShadow: `0 0 18px ${pickedTeam.color}`,
-      borderRadius: '50%',
-    });
-
-    // Animate ghost from drum to reveal zone
-    gsap.to(ghost, {
-      left:      tx,
-      top:       ty,
-      scale:     2.2,
-      rotation:  720,
-      duration:  1.0,
-      ease:      'power2.inOut',
-      boxShadow: `0 0 50px ${pickedTeam.color}, 0 0 100px ${pickedTeam.color}55`,
-    });
-
-    // ── Phase 4: Card reveal (at 1200+1100 = 2300ms) ─────────
-    setTimeout(() => {
-      // Populate card back
-      const cardBack = document.getElementById('card-back');
-      cardBack.style.background  = pickedTeam.color;
-      cardBack.style.borderColor = pickedTeam.color;
-      cardBack.style.color       = getContrastColor(pickedTeam.color);
-      document.getElementById('card-pick-num').textContent  = `#${pickNum}`;
-      document.getElementById('card-team-name').textContent = pickedTeam.name;
-
-      // Show card at front face (rotationY = 0)
-      const card = document.getElementById('reveal-card');
-      card.classList.add('visible');
-      gsap.set(card, { rotationY: 0, transformPerspective: 900 });
-
-      // Fade out ghost ball
-      gsap.to(ghost, { opacity: 0, scale: 0.4, duration: 0.35, delay: 0.25 });
-
-      // Flip card to reveal back face
-      gsap.to(card, {
-        rotationY:          180,
-        transformPerspective: 900,
-        duration:           0.75,
-        ease:               'back.out(1.2)',
-        delay:              0.35,
-        onComplete: () => {
-          gsap.set(ghost, { display: 'none' });
-        },
-      });
-
-      // ── Phase 5: Cleanup (at 2300+1600 = 3900ms) ───────────
-      setTimeout(() => {
-        // Remove remaining balls for that team
-        removeBallsForTeam(pickedBall.teamIdx);
-
-        // Gray out legend entry
-        const legendEl = document.getElementById(`legend-item-${pickedBall.teamIdx}`);
-        if (legendEl) legendEl.classList.add('eliminated');
-
-        // Append result row
-        addResultRow(pickNum, pickedTeam);
-
-        // Wind down drum visuals
-        gsap.to('#drum-spotlight', { opacity: 0, duration: 0.4 });
-        document.getElementById('drum-ring').classList.remove('spinning');
-
-        // Reset card (fade out, then hide) so next pick starts fresh
-        gsap.to(card, {
-          opacity: 0, duration: 0.3, delay: 1.0,
-          onComplete: () => {
-            gsap.set(card, { opacity: 1, rotationY: 0 });
-            card.classList.remove('visible');
+        STATE.render = Render.create({
+          canvas,
+          engine: STATE.engine,
+          options: {
+            width: CANVAS_SZ,
+            height: CANVAS_SZ,
+            wireframes: false,
+            background: 'transparent',
           },
         });
 
-        // Advance state
-        STATE.results.push({ pick: pickNum, teamName: pickedTeam.name, color: pickedTeam.color });
-        STATE.currentPick++;
-        STATE.isAnimating = false;
+        STATE.runner = Runner.create();
 
-        if (STATE.currentPick > NUM_LOTTERY) {
-          checkLotteryComplete();
-        } else {
-          document.getElementById('pick-indicator').textContent =
-            `Ready to draw Pick #${STATE.currentPick}`;
-          const btn = document.getElementById('btn-draw');
-          btn.textContent = `DRAW PICK #${STATE.currentPick}`;
-          btn.disabled = false;
+        buildDrumWalls();
+        Render.run(STATE.render);
+        Runner.run(STATE.runner, STATE.engine);
+      }
+
+      function buildDrumWalls() {
+        const segAngle = (Math.PI * 2) / NUM_WALL_SEGS;
+        const chord = 2 * DRUM_RADIUS * Math.sin(segAngle / 2) + 2; // slight overlap
+        const thickness = 22;
+        const bodies = [];
+
+        for (let i = 0; i < NUM_WALL_SEGS; i++) {
+          const angle = i * segAngle;
+          const x = DRUM_CX + DRUM_RADIUS * Math.cos(angle);
+          const y = DRUM_CY + DRUM_RADIUS * Math.sin(angle);
+          bodies.push(
+            Bodies.rectangle(x, y, chord, thickness, {
+              isStatic: true,
+              angle: angle,
+              friction: 0.1,
+              restitution: 0.5,
+              render: { visible: false },
+            }),
+          );
         }
 
-      }, 1600);
+        World.add(STATE.engine.world, bodies);
+      }
 
-    }, 1100);
+      // ══════════════════════════════════════════════════════════════
+      //  BALL SPAWNING
+      // ══════════════════════════════════════════════════════════════
+      function spawnBalls() {
+        // Build flat list of team indices (35× team0, 30× team1, …)
+        const teamList = [];
+        STATE.teams.forEach((team, idx) => {
+          for (let j = 0; j < team.ticketCount; j++) teamList.push(idx);
+        });
 
-  }, 1200);
-}
+        // Fisher-Yates shuffle so mixed colors appear from start
+        for (let i = teamList.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [teamList[i], teamList[j]] = [teamList[j], teamList[i]];
+        }
 
-// ══════════════════════════════════════════════════════════════
-//  RESULTS PANEL
-// ══════════════════════════════════════════════════════════════
-function addResultRow(pick, team) {
-  const list = document.getElementById('results-list');
-  const row  = document.createElement('div');
-  row.className = 'result-row';
-  row.style.borderLeftColor = team.color;
-  row.innerHTML = `
+        // Staggered spawn: 1 ball every 22ms → last ball at ~2.2s
+        teamList.forEach((teamIdx, id) => {
+          setTimeout(() => {
+            const team = STATE.teams[teamIdx];
+            const x = DRUM_CX + (Math.random() - 0.5) * 70;
+            const y = DRUM_CY - DRUM_RADIUS * 0.55 + (Math.random() - 0.5) * 40;
+
+            const body = Bodies.circle(x, y, BALL_R, {
+              restitution: 0.6,
+              friction: 0.05,
+              frictionAir: 0.012,
+              density: 0.002,
+              render: {
+                fillStyle: team.color,
+                strokeStyle: lighten(team.color, 25),
+                lineWidth: 1.5,
+              },
+            });
+
+            Body.setVelocity(body, {
+              x: (Math.random() - 0.5) * 4,
+              y: (Math.random() - 0.5) * 3,
+            });
+
+            World.add(STATE.engine.world, body);
+            STATE.ballPool.push({ id, teamIdx, body, active: true });
+
+            // After last ball spawns, enable play
+            if (STATE.ballPool.length === teamList.length) {
+              setTimeout(() => {
+                startChaosForce();
+                document.getElementById('pick-indicator').textContent =
+                  `Ready to draw Pick #1`;
+                const btn = document.getElementById('btn-draw');
+                btn.textContent = 'DRAW PICK #1';
+                btn.disabled = false;
+              }, 1200);
+            }
+          }, id * 22);
+        });
+      }
+
+      function lighten(hex, amt) {
+        const n = parseInt(hex.replace('#', ''), 16);
+        const r = Math.min(255, (n >> 16) + amt);
+        const g = Math.min(255, ((n >> 8) & 0xff) + amt);
+        const b = Math.min(255, (n & 0xff) + amt);
+        return `#${((r << 16) | (g << 8) | b).toString(16).padStart(6, '0')}`;
+      }
+
+      // ══════════════════════════════════════════════════════════════
+      //  CHAOS FORCE  (keeps balls visibly tumbling)
+      // ══════════════════════════════════════════════════════════════
+      function startChaosForce() {
+        STATE.chaosInterval = setInterval(() => applyChaos(1), 450);
+      }
+
+      function applyChaos(intensity) {
+        STATE.ballPool
+          .filter((b) => b.active)
+          .forEach((b) => {
+            Body.applyForce(b.body, b.body.position, {
+              x: (Math.random() - 0.5) * 0.0028 * intensity,
+              y: (Math.random() - 0.5) * 0.0028 * intensity,
+            });
+          });
+      }
+
+      // ══════════════════════════════════════════════════════════════
+      //  LOTTERY LOGIC  (direct port of Python generate_lottery)
+      // ══════════════════════════════════════════════════════════════
+      function pickRandomBall() {
+        const active = STATE.ballPool.filter((b) => b.active);
+        return active[Math.floor(Math.random() * active.length)];
+      }
+
+      function removeBallsForTeam(teamIdx) {
+        STATE.ballPool
+          .filter((b) => b.active && b.teamIdx === teamIdx)
+          .forEach((b, i) => {
+            setTimeout(() => {
+              b.active = false;
+              World.remove(STATE.engine.world, b.body);
+            }, i * 18); // stagger removal for visual effect
+          });
+      }
+
+      // ══════════════════════════════════════════════════════════════
+      //  DRAW BUTTON
+      // ══════════════════════════════════════════════════════════════
+      function handleDrawClick() {
+        if (STATE.isAnimating) return;
+        STATE.isAnimating = true;
+        document.getElementById('btn-draw').disabled = true;
+        runPickSequence();
+      }
+
+      // ══════════════════════════════════════════════════════════════
+      //  ANIMATION SEQUENCE
+      // ══════════════════════════════════════════════════════════════
+      function runPickSequence() {
+        const pickNum = STATE.currentPick;
+
+        // ── Phase 1: Anticipation (0ms – 1200ms) ──────────────────
+        document.getElementById('pick-indicator').textContent =
+          `Drawing Pick #${pickNum}...`;
+        document.getElementById('drum-ring').classList.add('spinning');
+
+        // Speed up chaos during anticipation
+        clearInterval(STATE.chaosInterval);
+        const fastChaos = setInterval(() => applyChaos(5), 80);
+
+        gsap.to('#drum-spotlight', {
+          opacity: 1,
+          duration: 0.5,
+          ease: 'power2.inOut',
+        });
+
+        // ── Phase 2+3: Pick ball, animate ghost (at 1200ms) ───────
+        setTimeout(() => {
+          clearInterval(fastChaos);
+          STATE.chaosInterval = setInterval(() => applyChaos(1), 450);
+
+          const pickedBall = pickRandomBall();
+          const pickedTeam = STATE.teams[pickedBall.teamIdx];
+
+          // Remove from physics world immediately
+          pickedBall.active = false;
+          World.remove(STATE.engine.world, pickedBall.body);
+
+          // Translate Matter.js world position → viewport coords
+          const canvas = document.getElementById('drum-canvas');
+          const rect = canvas.getBoundingClientRect();
+          const bx = rect.left + pickedBall.body.position.x;
+          const by = rect.top + pickedBall.body.position.y;
+
+          // Get reveal zone target
+          const revealZone = document.querySelector('.reveal-zone');
+          const rRect = revealZone.getBoundingClientRect();
+          const tx = rRect.left + rRect.width / 2 - BALL_R;
+          const ty = rRect.top + rRect.height / 2 - BALL_R;
+
+          // Place ghost ball at ball's position
+          const ghost = document.getElementById('ghost-ball');
+          gsap.set(ghost, {
+            clearProps: 'transform',
+            display: 'block',
+            opacity: 1,
+            scale: 1,
+            rotation: 0,
+            left: bx - BALL_R,
+            top: by - BALL_R,
+            width: BALL_R * 2,
+            height: BALL_R * 2,
+            background: pickedTeam.color,
+            boxShadow: `0 0 18px ${pickedTeam.color}`,
+            borderRadius: '50%',
+          });
+
+          // Animate ghost from drum to reveal zone
+          gsap.to(ghost, {
+            left: tx,
+            top: ty,
+            scale: 2.2,
+            rotation: 720,
+            duration: 1.0,
+            ease: 'power2.inOut',
+            boxShadow: `0 0 50px ${pickedTeam.color}, 0 0 100px ${pickedTeam.color}55`,
+          });
+
+          // ── Phase 4: Card reveal (at 1200+1100 = 2300ms) ─────────
+          setTimeout(() => {
+            // Populate card back
+            const cardBack = document.getElementById('card-back');
+            cardBack.style.background = pickedTeam.color;
+            cardBack.style.borderColor = pickedTeam.color;
+            cardBack.style.color = getContrastColor(pickedTeam.color);
+            document.getElementById('card-pick-num').textContent =
+              `#${pickNum}`;
+            document.getElementById('card-team-name').textContent =
+              pickedTeam.name;
+
+            // Show card at front face (rotationY = 0)
+            const card = document.getElementById('reveal-card');
+            card.classList.add('visible');
+            gsap.set(card, { rotationY: 0, transformPerspective: 900 });
+
+            // Fade out ghost ball
+            gsap.to(ghost, {
+              opacity: 0,
+              scale: 0.4,
+              duration: 0.35,
+              delay: 0.25,
+            });
+
+            // Flip card to reveal back face
+            gsap.to(card, {
+              rotationY: 180,
+              transformPerspective: 900,
+              duration: 0.75,
+              ease: 'back.out(1.2)',
+              delay: 0.35,
+              onComplete: () => {
+                gsap.set(ghost, { display: 'none' });
+              },
+            });
+
+            // ── Phase 5: Cleanup (at 2300+1600 = 3900ms) ───────────
+            setTimeout(() => {
+              // Remove remaining balls for that team
+              removeBallsForTeam(pickedBall.teamIdx);
+
+              // Gray out legend entry
+              const legendEl = document.getElementById(
+                `legend-item-${pickedBall.teamIdx}`,
+              );
+              if (legendEl) legendEl.classList.add('eliminated');
+
+              // Append result row
+              addResultRow(pickNum, pickedTeam);
+
+              // Wind down drum visuals
+              gsap.to('#drum-spotlight', { opacity: 0, duration: 0.4 });
+              document.getElementById('drum-ring').classList.remove('spinning');
+
+              // Reset card (fade out, then hide) so next pick starts fresh
+              gsap.to(card, {
+                opacity: 0,
+                duration: 0.3,
+                delay: 1.0,
+                onComplete: () => {
+                  gsap.set(card, { opacity: 1, rotationY: 0 });
+                  card.classList.remove('visible');
+                },
+              });
+
+              // Advance state
+              STATE.results.push({
+                pick: pickNum,
+                teamName: pickedTeam.name,
+                color: pickedTeam.color,
+              });
+              STATE.currentPick++;
+              STATE.isAnimating = false;
+
+              if (STATE.currentPick > NUM_LOTTERY) {
+                checkLotteryComplete();
+              } else {
+                document.getElementById('pick-indicator').textContent =
+                  `Ready to draw Pick #${STATE.currentPick}`;
+                const btn = document.getElementById('btn-draw');
+                btn.textContent = `DRAW PICK #${STATE.currentPick}`;
+                btn.disabled = false;
+              }
+            }, 1600);
+          }, 1100);
+        }, 1200);
+      }
+
+      // ══════════════════════════════════════════════════════════════
+      //  RESULTS PANEL
+      // ══════════════════════════════════════════════════════════════
+      function addResultRow(pick, team) {
+        const list = document.getElementById('results-list');
+        const row = document.createElement('div');
+        row.className = 'result-row';
+        row.style.borderLeftColor = team.color;
+        row.innerHTML = `
     <div class="result-pick">PICK ${pick}</div>
     <div class="result-dot" style="background:${team.color}"></div>
     <div class="result-name">${team.name}</div>
   `;
-  list.appendChild(row);
+        list.appendChild(row);
 
-  gsap.to(row, { opacity: 1, x: 0, duration: 0.45, ease: 'power2.out', delay: 0.05 });
-}
+        gsap.to(row, {
+          opacity: 1,
+          x: 0,
+          duration: 0.45,
+          ease: 'power2.out',
+          delay: 0.05,
+        });
+      }
 
-// ══════════════════════════════════════════════════════════════
-//  LOTTERY COMPLETE
-// ══════════════════════════════════════════════════════════════
-function checkLotteryComplete() {
-  document.getElementById('pick-indicator').textContent = 'Lottery Complete!';
+      // ══════════════════════════════════════════════════════════════
+      //  LOTTERY COMPLETE
+      // ══════════════════════════════════════════════════════════════
+      function checkLotteryComplete() {
+        document.getElementById('pick-indicator').textContent =
+          'Lottery Complete!';
 
-  const btn = document.getElementById('btn-draw');
-  btn.textContent = 'LOTTERY COMPLETE';
-  btn.classList.add('complete');
+        const btn = document.getElementById('btn-draw');
+        btn.textContent = 'LOTTERY COMPLETE';
+        btn.classList.add('complete');
 
-  // Stop chaos force
-  clearInterval(STATE.chaosInterval);
-  STATE.chaosInterval = null;
+        // Stop chaos force
+        clearInterval(STATE.chaosInterval);
+        STATE.chaosInterval = null;
 
-  // Celebration flash on results panel
-  setTimeout(() => {
-    const panel = document.getElementById('results-panel');
-    panel.classList.add('celebrate');
-    setTimeout(() => panel.classList.remove('celebrate'), 3800);
-  }, 600);
-}
+        // Celebration flash on results panel
+        setTimeout(() => {
+          const panel = document.getElementById('results-panel');
+          panel.classList.add('celebrate');
+          setTimeout(() => panel.classList.remove('celebrate'), 3800);
+        }, 600);
+      }
 
-// ══════════════════════════════════════════════════════════════
-//  INIT
-// ══════════════════════════════════════════════════════════════
-initSetupScreen();
-</script>
-</body>
+      // ══════════════════════════════════════════════════════════════
+      //  INIT
+      // ══════════════════════════════════════════════════════════════
+      initSetupScreen();
+    </script>
+  </body>
 </html>
